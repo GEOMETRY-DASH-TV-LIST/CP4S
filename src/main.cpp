@@ -3,6 +3,7 @@
 
 using namespace geode::prelude;
 
+// Variables de estado globales
 int g_clicksInInterval = 0;
 float g_timeAccumulator = 0.0f;
 CCLabelBMFont* g_cpsLabel = nullptr;
@@ -15,9 +16,11 @@ class $modify(MyPlayLayer, PlayLayer) {
         g_clicksInInterval = 0;
         g_timeAccumulator = 0.0f;
 
+        // Crear la etiqueta de texto con la fuente nativa
         g_cpsLabel = CCLabelBMFont::create("CPS: 0.0", "goldFont.fnt");
         auto winSize = CCDirector::sharedDirector()->getWinSize();
         
+        // Ubicación en la esquina superior derecha
         g_cpsLabel->setPosition({ winSize.width - 55.0f, winSize.height - 15.0f });
         g_cpsLabel->setScale(0.55f);
         g_cpsLabel->setOpacity(190);
@@ -27,13 +30,13 @@ class $modify(MyPlayLayer, PlayLayer) {
         return true;
     }
 
-    // Usamos una función nativa de actualización que ya existe en PlayLayer para no romper el compilador
-    void updateVisibility(float dt) {
-        PlayLayer::updateVisibility(dt);
+    // Interceptar la actualización nativa de PlayLayer para el temporizador (Evita problemas de selectores)
+    void update(float dt) {
+        PlayLayer::update(dt);
 
-        // Incrementar tiempo usando el delta time del cuadro
         g_timeAccumulator += dt;
 
+        // Cada 4 segundos exactos se recalcula el promedio de CPS
         if (g_timeAccumulator >= 4.0f) {
             if (g_cpsLabel) {
                 float cps = static_cast<float>(g_clicksInInterval) / g_timeAccumulator;
@@ -45,10 +48,11 @@ class $modify(MyPlayLayer, PlayLayer) {
         }
     }
 
-    // Hook alternativo para clics que no usa estructuras de botones raras
-    void playStateChanged(int state) {
-        PlayLayer::playStateChanged(state);
-        // Cada interacción básica o salto incrementa el contador
-        g_clicksInInterval++;
+    // Método universal de saltos para la versión actual de Geode
+    void pushButton(PlayerButton btn, bool isPlayer2) {
+        PlayLayer::pushButton(btn, isPlayer2);
+        if (!isPlayer2 && btn == PlayerButton::Jump) {
+            g_clicksInInterval++;
+        }
     }
 };
