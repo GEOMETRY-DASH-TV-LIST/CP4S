@@ -5,6 +5,7 @@ using namespace geode::prelude;
 
 // Variables globales para el estado del CPS
 int g_clicksInInterval = 0;
+float g_timeAccumulator = 0.0f; // Acumulador de tiempo en segundos
 CCLabelBMFont* g_cpsLabel = nullptr;
 
 class $modify(MyPlayLayer, PlayLayer) {
@@ -12,32 +13,30 @@ class $modify(MyPlayLayer, PlayLayer) {
     bool init(GJGameLevel* level, bool useReplay, bool dontRunLevel) {
         if (!PlayLayer::init(level, useReplay, dontRunLevel)) return false;
 
-        // Resetear el contador de clicks al iniciar o reiniciar el nivel
+        // Resetear variables al iniciar o reiniciar el nivel
         g_clicksInInterval = 0;
+        g_timeAccumulator = 0.0f;
 
-        // 1. Crear el texto usando la fuente estilizada de los menús (goldFont)
+        // Crear el texto usando la fuente estilizada
         g_cpsLabel = CCLabelBMFont::create("CPS: 0.0", "goldFont.fnt");
         
-        // Obtener las dimensiones exactas de la pantalla del dispositivo
+        // Obtener las dimensiones de la pantalla
         auto winSize = CCDirector::sharedDirector()->getWinSize();
         
-        // Posicionar el elemento arriba en la esquina derecha de la pantalla (con margen)
+        // Posicionar arriba a la derecha
         g_cpsLabel->setPosition({ winSize.width - 55.0f, winSize.height - 15.0f });
-        
-        // Escalarlo adecuadamente para pantallas táctiles de celulares
         g_cpsLabel->setScale(0.55f);
-        g_cpsLabel->setOpacity(190); // Sutilmente transparente
+        g_cpsLabel->setOpacity(190);
         
-        // Añadirlo a la capa con máxima prioridad visual (z-order: 999)
         this->addChild(g_cpsLabel, 999);
 
-        // 2. Programar la rutina que se ejecuta estrictamente cada 4 segundos
-        this->schedule(schedule_selector(MyPlayLayer::updateCpsInterval), 4.0f);
+        // Activar la actualización por cuadro (llama a update automáticamente)
+        this->scheduleUpdate();
 
         return true;
     }
 
-    // Registrar la pulsación táctil (Player 1)
+    // Registrar las pulsaciones
     void pushButton(PlayerButton button, bool isPlayer2) {
         PlayLayer::pushButton(button, isPlayer2);
         
@@ -46,18 +45,26 @@ class $modify(MyPlayLayer, PlayLayer) {
         }
     }
 
-    // Función ejecutada por el planificador de Cocos2d-x cada 4 segundos
-    void updateCpsInterval(float dt) {
-        if (g_cpsLabel) {
-            // Clicks del lapso divididos entre los 4 segundos transcurridos
-            float cps = static_cast<float>(g_clicksInInterval) / 4.0f;
+    // Se ejecuta en cada cuadro del juego de forma segura
+    void update(float dt) {
+        PlayLayer::update(dt);
+
+        // Sumar el tiempo transcurrido en este cuadro
+        g_timeAccumulator += dt;
+
+        // Cuando pasen los 4 segundos estrictos
+        if (g_timeAccumulator >= 4.0f) {
+            if (g_cpsLabel) {
+                // Calcular CPS usando el tiempo real acumulado para máxima precisión
+                float cps = static_cast<float>(g_clicksInInterval) / g_timeAccumulator;
+                
+                std::string cpsText = fmt::format("CPS: {:.1f}", cps);
+                g_cpsLabel->setString(cpsText.c_str());
+            }
             
-            // Re-escribir el texto manteniendo 1 decimal de precisión
-            std::string cpsText = fmt::format("CPS: {:.1f}", cps);
-            g_cpsLabel->setString(cpsText.c_str());
+            // Reiniciar contadores para el próximo ciclo
+            g_clicksInInterval = 0;
+            g_timeAccumulator = 0.0f;
         }
-        
-        // REINICIO OBLIGATORIO: Volver a comenzar la cuenta para el siguiente ciclo de 4 segundos
-        g_clicksInInterval = 0;
     }
 };
