@@ -1,17 +1,14 @@
 {
-	"geode": "$GEODE_VERSION",
-	"gd": {
-		"win": "2.2081",
-		"android": "2.2081",
-		"mac": "2.2081",
-		"ios": "2.2081"
-	},
-	"id": "$MOD_ID",
-	"name": "$MOD_NAME",
-	"version": "$MOD_VERSION",
-	"developer": "$MOD_DEVELOPER",
-	"description": "$MOD_DESCRIPTION",
-	"dependencies": {
-		"geode.node-ids": ">=v1.23.3"
-	}
+    "geode": "3.0.0-beta.1",
+    "id": "Gtjgr.cps_label",
+    "version": "1.0.0",
+    "name": "4s CPS Label",
+    "developer": "TuNombre",
+    "description": "Muestra un contador de CPS en la esquina superior derecha que se actualiza estrictamente cada 4 segundos.",
+    "dependencies": [],
+    "platforms": {
+        "android32": true,
+        "android64": true,
+        "windows": true
+    }
 }
