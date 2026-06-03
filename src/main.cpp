@@ -3,7 +3,6 @@
 
 using namespace geode::prelude;
 
-// Variables de estado globales
 int g_clicksInInterval = 0;
 float g_timeAccumulator = 0.0f;
 CCLabelBMFont* g_cpsLabel = nullptr;
@@ -16,11 +15,11 @@ class $modify(MyPlayLayer, PlayLayer) {
         g_clicksInInterval = 0;
         g_timeAccumulator = 0.0f;
 
-        // Crear la etiqueta de texto con la fuente nativa
+        // Crear la etiqueta usando la fuente clásica
         g_cpsLabel = CCLabelBMFont::create("CPS: 0.0", "goldFont.fnt");
         auto winSize = CCDirector::sharedDirector()->getWinSize();
         
-        // Ubicación en la esquina superior derecha
+        // Posicionar arriba a la derecha
         g_cpsLabel->setPosition({ winSize.width - 55.0f, winSize.height - 15.0f });
         g_cpsLabel->setScale(0.55f);
         g_cpsLabel->setOpacity(190);
@@ -30,13 +29,12 @@ class $modify(MyPlayLayer, PlayLayer) {
         return true;
     }
 
-    // Interceptar la actualización nativa de PlayLayer para el temporizador (Evita problemas de selectores)
-    void update(float dt) {
-        PlayLayer::update(dt);
+    // Usamos postUpdate de PlayLayer, que es el punto de entrada de fotogramas más limpio en 2.208+
+    void postUpdate(float dt) {
+        PlayLayer::postUpdate(dt);
 
         g_timeAccumulator += dt;
 
-        // Cada 4 segundos exactos se recalcula el promedio de CPS
         if (g_timeAccumulator >= 4.0f) {
             if (g_cpsLabel) {
                 float cps = static_cast<float>(g_clicksInInterval) / g_timeAccumulator;
@@ -48,7 +46,7 @@ class $modify(MyPlayLayer, PlayLayer) {
         }
     }
 
-    // Método universal de saltos para la versión actual de Geode
+    // Estructura de control de botones exacta para las últimas compilaciones de Geode
     void pushButton(PlayerButton btn, bool isPlayer2) {
         PlayLayer::pushButton(btn, isPlayer2);
         if (!isPlayer2 && btn == PlayerButton::Jump) {
