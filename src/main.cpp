@@ -4,8 +4,9 @@
 using namespace geode::prelude;
 
 int g_clicksInInterval = 0;
-float g_timeAccumulator = 0.0f;
-CCLabelBMFont* g_cpsLabel = nullptr;
+cocos2d::CCLabelBMFont* g_cpsLabel = nullptr;
+// Usamos el reloj interno de alta precisión para medir el intervalo de 4 segundos
+std::chrono::time_point<std::chrono::steady_clock> g_lastResetTime = std::chrono::steady_clock::now();
 
 class $modify(MyPlayLayer, PlayLayer) {
     
@@ -13,13 +14,11 @@ class $modify(MyPlayLayer, PlayLayer) {
         if (!PlayLayer::init(level, useReplay, dontRunLevel)) return false;
 
         g_clicksInInterval = 0;
-        g_timeAccumulator = 0.0f;
+        g_lastResetTime = std::chrono::steady_clock::now();
 
-        // Crear la etiqueta usando la fuente clásica
         g_cpsLabel = CCLabelBMFont::create("CPS: 0.0", "goldFont.fnt");
         auto winSize = CCDirector::sharedDirector()->getWinSize();
         
-        // Posicionar arriba a la derecha
         g_cpsLabel->setPosition({ winSize.width - 55.0f, winSize.height - 15.0f });
         g_cpsLabel->setScale(0.55f);
         g_cpsLabel->setOpacity(190);
@@ -29,28 +28,34 @@ class $modify(MyPlayLayer, PlayLayer) {
         return true;
     }
 
-    // Usamos postUpdate de PlayLayer, que es el punto de entrada de fotogramas más limpio en 2.208+
-    void postUpdate(float dt) {
-        PlayLayer::postUpdate(dt);
-
-        g_timeAccumulator += dt;
-
-        if (g_timeAccumulator >= 4.0f) {
-            if (g_cpsLabel) {
-                float cps = static_cast<float>(g_clicksInInterval) / g_timeAccumulator;
-                std::string cpsText = fmt::format("CPS: {:.1f}", cps);
-                g_cpsLabel->setString(cpsText.c_str());
-            }
-            g_clicksInInterval = 0;
-            g_timeAccumulator = 0.0f;
-        }
+    // Al salir del nivel, limpiamos el puntero para evitar cierres forzados (crashes)
+    void onQuit() {
+        PlayLayer::onQuit();
+        g_cpsLabel = nullptr;
     }
 
-    // Estructura de control de botones exacta para las últimas compilaciones de Geode
-    void pushButton(PlayerButton btn, bool isPlayer2) {
+    // Usamos PlayerInput en lugar del obsoleto PlayerButton para GD 2.2081
+    void pushButton(PlayerInput btn, bool isPlayer2) {
         PlayLayer::pushButton(btn, isPlayer2);
-        if (!isPlayer2 && btn == PlayerButton::Jump) {
+        
+        // PlayerInput::Jump es el equivalente actual para saltar/cliquear
+        if (!isPlayer2 && btn == PlayerInput::Jump) {
             g_clicksInInterval++;
+            
+            // Calculamos el tiempo transcurrido desde el último reinicio
+            auto now = std::chrono::steady_clock::now();
+            std::chrono::duration<float> elapsed = now - g_lastResetTime;
+
+            // Si ya pasaron los 4 segundos, actualizamos la interfaz y reiniciamos
+            if (elapsed.count() >= 4.0f) {
+                if (g_cpsLabel) {
+                    float cps = static_cast<float>(g_clicksInInterval) / elapsed.count();
+                    std::string cpsText = fmt::format("CPS: {:.1f}", cps);
+                    g_cpsLabel->setString(cpsText.c_str());
+                }
+                g_clicksInInterval = 0;
+                g_lastResetTime = now;
+            }
         }
     }
-};
+}
