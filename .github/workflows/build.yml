@@ -24,13 +24,11 @@ jobs:
     runs-on: ${{ matrix.config.os }}
 
     steps:
-      - data: ${{ matrix.config.target }}
-        id: config
-
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Build Mod
         uses: geode-sdk/build-geode-mod@main
         with:
+          bindings: geode-sdk/bindings
           target: ${{ matrix.config.target }}
